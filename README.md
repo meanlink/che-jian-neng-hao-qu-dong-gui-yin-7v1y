@@ -3,8 +3,15 @@
 特征选择与回归的真实业务分析小型项目。完整模拟客户、痛点、上下游、算法公式与一天工作剧本见 [BUSINESS.md](BUSINESS.md)。
 
 ## 模块与业务流程
-数据接入（JSON/CSV、字段验证、批次指纹）→ 参数化分析（异步 Python worker）→ 结果复核（指标、图形、明细、解释、批准）→ 定时分发（本地收件箱、CSV/JSON、SHA256）；另有业务总览和审计轨迹。
-三个贯穿全栈的实体：Dataset 数据批次、Job 分析任务、Report 分发计划；辅助 User、Audit、Delivery。
+数据接入（独立模拟源分页全量 → 变更位置追平 → 批次版本；另支持 JSON/CSV 人工导入）→ 参数化分析（异步 Python worker）→ 结果复核（指标、图形、明细、解释、批准）→ 定时分发（本地收件箱、CSV/JSON、SHA256）；另有业务总览和审计轨迹。
+三个贯穿全栈的实体：Dataset 数据批次（含不可变 DatasetVersion）、Job 分析任务、Report 分发计划；辅助 User、Audit、Delivery、SimulatedSource、SourceChange。
+
+## 源端同步
+- `POST /datasets/{id}/sync`：分页取全量；`max_pages` 限制单次页数。中断后 `POST /datasets/{id}/sync/resume` 从游标继续，复用同一在途版本。
+- `POST /datasets/{id}/sync/full|incremental`：显式全量重建或凭据增量。凭据过期时返回“需重建”，旧发布版本保持可用，齐全后一次性切换。
+- `GET /datasets/{id}/verify`：对照源端列出缺失、多出与内容差异。
+- `SimulatedSource`：`/sources` 系列接口可写样本、撤销、设分页/延迟/凭据期限，或在第 N 页、第 M 个变更位置制造一次性中断。页面“数据接入”可直接操作。
+- 试验创建时固定 `dataset_version_id`，worker 只读该版本；同步不改变旧试验依据。
 
 ## 快速启动
 ```bash

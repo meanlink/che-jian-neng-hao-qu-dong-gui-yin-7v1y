@@ -4,7 +4,7 @@ from sqlalchemy import select
 from redis import Redis
 from src.config.database import Session
 from src.config.settings import REDIS_URL
-from src.models import Job, Dataset, Report
+from src.models import Job, Dataset, DatasetVersion, Report
 from src.services.business import analyze
 from src.services.reports import deliver
 from src.services.audit import record
@@ -15,8 +15,9 @@ def execute(job_id):
         if not j or j.status!='queued':return
         j.status='running'; db.commit()
         try:
-            d=db.get(Dataset,j.dataset_id)
-            result=analyze(d.records,j.params)
+            v=db.get(DatasetVersion,j.dataset_version_id) if j.dataset_version_id else None
+            if not v: raise ValueError('该分析任务缺少已发布批次版本快照')
+            result=analyze(v.records,j.params)
             json.dumps(result,allow_nan=False)
             j.result=result;j.status='completed';j.finished_at=time.time()
             record(db,'worker','job.completed',{'id':j.id})

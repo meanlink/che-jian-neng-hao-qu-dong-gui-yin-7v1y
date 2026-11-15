@@ -32,3 +32,6 @@ target/
 *.o
 *.obj
 .DS_Store
+
+# gb-1016 test artifacts (kept out of source)
+test-artifacts/
